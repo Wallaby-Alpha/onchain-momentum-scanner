@@ -52,7 +52,62 @@ def init_db():
                 FOREIGN KEY (alert_id) REFERENCES alerts(id)
             )
         """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS token_registry (
+                token_address TEXT PRIMARY KEY,
+                chain_id TEXT NOT NULL,
+                symbol TEXT,
+                name TEXT,
+                first_seen_at INTEGER NOT NULL,
+                last_scanned_at INTEGER NOT NULL,
+                is_active INTEGER DEFAULT 1
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_registry_active ON token_registry(is_active)")
     conn.close()
+
+
+def upsert_registry_tokens(tokens: List[Dict[str, Any]]):
+    """Upsert tokens into the persistent registry."""
+    if not tokens:
+        return
+    conn = get_connection()
+    now_ts = int(time.time())
+    with conn:
+        for t in tokens:
+            conn.execute("""
+                INSERT INTO token_registry (
+                    token_address, chain_id, symbol, name, first_seen_at, last_scanned_at, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, 1)
+                ON CONFLICT(token_address) DO UPDATE SET
+                    last_scanned_at = excluded.last_scanned_at,
+                    symbol = coalesce(excluded.symbol, token_registry.symbol),
+                    name = coalesce(excluded.name, token_registry.name)
+            """, (
+                t["token_address"],
+                t.get("chain_id", "unknown"),
+                t.get("symbol"),
+                t.get("name"),
+                now_ts,
+                now_ts
+            ))
+    conn.close()
+
+
+def get_active_registry_tokens(limit: int = 4000) -> List[str]:
+    """Retrieve list of active token addresses from the registry."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT token_address FROM token_registry 
+        WHERE is_active = 1 
+        ORDER BY last_scanned_at DESC 
+        LIMIT ?
+    """, (limit,))
+    rows = cur.fetchall()
+    conn.close()
+    return [r["token_address"] for r in rows]
 
 def record_alert(token_data: Dict[str, Any]) -> int:
     conn = get_connection()

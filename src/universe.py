@@ -3,6 +3,7 @@ import logging
 import requests
 from typing import Set, Dict, List
 from src.config import Config
+from src.database import get_active_registry_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +21,56 @@ STABLECOINS_AND_WRAPPED = {
     "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", # WBNB
     "0x55d398326f99059ff775485246999027b3197955", # USDT (BSC)
     "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", # USDC (BSC)
+    "0x912ce59144191c1204e64559fe8253a0e49e6548", # ARB
 }
 
-# GeckoTerminal network slug mapping
-GECKO_NETWORK_MAP = {
-    "solana": "solana",
-    "base": "base",
-    "ethereum": "eth",
-    "bsc": "bsc",
-    "arbitrum": "arbitrum"
+COINGECKO_LIST_URLS = {
+    "base": "https://tokens.coingecko.com/base/all.json",
+    "bsc": "https://tokens.coingecko.com/binance-smart-chain/all.json",
+    "ethereum": "https://tokens.coingecko.com/uniswap/all.json",
+    "arbitrum": "https://tokens.coingecko.com/arbitrum-one/all.json"
 }
+
+SOLANA_LABS_LIST_URL = "https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json"
+
+
+def fetch_solana_verified_tokens(limit: int = 1200) -> Set[str]:
+    """Fetch verified Solana tokens from the official Solana Labs registry."""
+    tokens = set()
+    try:
+        res = requests.get(SOLANA_LABS_LIST_URL, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            raw_tokens = data.get("tokens", [])
+            for item in raw_tokens[:limit]:
+                addr = item.get("address")
+                if addr and addr not in STABLECOINS_AND_WRAPPED:
+                    tokens.add(addr)
+        logger.info(f"Loaded {len(tokens)} verified Solana tokens from Solana Labs.")
+    except Exception as e:
+        logger.warning(f"Error fetching Solana verified token list: {e}")
+    return tokens
+
+
+def fetch_coingecko_chain_tokens(chain: str, limit: int = 800) -> Set[str]:
+    """Fetch verified EVM tokens for a specific chain from CoinGecko curated lists."""
+    tokens = set()
+    url = COINGECKO_LIST_URLS.get(chain)
+    if not url:
+        return tokens
+    try:
+        res = requests.get(url, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            raw_tokens = data.get("tokens", [])
+            for item in raw_tokens[:limit]:
+                addr = item.get("address")
+                if addr and addr not in STABLECOINS_AND_WRAPPED:
+                    tokens.add(addr)
+        logger.info(f"Loaded {len(tokens)} verified tokens for '{chain}' from CoinGecko.")
+    except Exception as e:
+        logger.warning(f"Error fetching CoinGecko list for {chain}: {e}")
+    return tokens
 
 
 def fetch_dexscreener_boosts() -> Set[str]:
@@ -66,39 +107,6 @@ def fetch_dexscreener_profiles() -> Set[str]:
     return tokens
 
 
-def fetch_geckoterminal_top_pools(chain: str, pages: int = 2) -> Set[str]:
-    """Fetch top pool base tokens from GeckoTerminal."""
-    tokens = set()
-    network = GECKO_NETWORK_MAP.get(chain)
-    if not network:
-        return tokens
-
-    headers = {"Accept": "application/json;version=20230302"}
-    for page in range(1, pages + 1):
-        try:
-            url = f"https://api.geckoterminal.com/api/v2/networks/{network}/pools?page={page}"
-            res = requests.get(url, headers=headers, timeout=10)
-            if res.status_code == 200:
-                pools = res.json().get("data", [])
-                for pool in pools:
-                    # Extract base token address from relationships or pool name
-                    rel = pool.get("relationships", {})
-                    base_token = rel.get("base_token", {}).get("data", {}).get("id")
-                    if base_token:
-                        parts = base_token.split("_")
-                        if len(parts) >= 2:
-                            token_addr = parts[1]
-                            if token_addr not in STABLECOINS_AND_WRAPPED:
-                                tokens.add(token_addr)
-            elif res.status_code == 429:
-                time.sleep(2)
-        except Exception as e:
-            logger.warning(f"Error fetching GeckoTerminal pools for {chain} page {page}: {e}")
-            break
-        time.sleep(0.5)
-    return tokens
-
-
 def fetch_dexscreener_search(query: str) -> Set[str]:
     """Search DexScreener by keyword to catch high-volume pairs."""
     tokens = set()
@@ -118,34 +126,68 @@ def fetch_dexscreener_search(query: str) -> Set[str]:
 
 def discover_universe() -> List[str]:
     """
-    Combines all discovery sources to compile an active candidate universe.
+    Assembles a comprehensive candidate universe (~3,000 tokens) combining:
+    1. Persistent local token registry (known active coins)
+    2. Verified ecosystem lists (Solana Labs, CoinGecko Base/BSC/ETH/Arbitrum)
+    3. DexScreener top boosts & profiles
+    4. DexScreener search expansion across major sectors and DEX protocols
     """
     candidate_tokens: Set[str] = set()
 
-    # 1. DexScreener boosts & profiles
+    ordered_candidates: List[str] = []
+
+    def add_tokens(tokens):
+        for t in tokens:
+            if t and t not in STABLECOINS_AND_WRAPPED:
+                ordered_candidates.append(t)
+
+    # 1. Dynamic active DEX tokens (High Priority)
     boosts = fetch_dexscreener_boosts()
     profiles = fetch_dexscreener_profiles()
-    candidate_tokens.update(boosts)
-    candidate_tokens.update(profiles)
-    logger.info(f"Discovered {len(boosts)} boosted and {len(profiles)} profiled tokens.")
+    add_tokens(boosts)
+    add_tokens(profiles)
 
-    # 2. GeckoTerminal top pools on enabled chains
-    for chain in Config.ENABLED_CHAINS:
-        pools = fetch_geckoterminal_top_pools(chain, pages=2)
-        candidate_tokens.update(pools)
-        logger.info(f"Discovered {len(pools)} top pools from GeckoTerminal for chain '{chain}'.")
-
-    # 3. DexScreener search top DEXs, keywords and ecosystems (great source for established midcaps)
     discovery_keywords = [
         "raydium", "meteora", "aerodrome", "uniswap", "orca", 
-        "pancakeswap", "sol", "weth", "usdc", "pepe", "ai", "virtual"
+        "pancakeswap", "sol", "weth", "pepe", "ai", "virtual", 
+        "depin", "rwa", "meme", "doge", "bonk", "trump", "fartcoin"
     ]
     for q in discovery_keywords:
         searched = fetch_dexscreener_search(q)
-        candidate_tokens.update(searched)
-        time.sleep(0.15)
+        add_tokens(searched)
+        time.sleep(0.12)
 
-    # Filter out known stablecoins/wrapped natives
-    cleaned = [t for t in candidate_tokens if t not in STABLECOINS_AND_WRAPPED]
-    logger.info(f"Total deduplicated candidate universe: {len(cleaned)} tokens.")
-    return cleaned
+    # 2. Local Registry of previously active tokens
+    try:
+        registered = get_active_registry_tokens(limit=3500)
+        add_tokens(registered)
+        if registered:
+            logger.info(f"Loaded {len(registered)} active tokens from local SQLite registry.")
+    except Exception as e:
+        logger.warning(f"Could not load local token registry: {e}")
+
+    # 3. Verified ecosystem lists to fill universe up to TARGET_UNIVERSE_SIZE
+    if "solana" in Config.ENABLED_CHAINS:
+        sol_tokens = fetch_solana_verified_tokens(limit=1500)
+        add_tokens(sol_tokens)
+
+    for chain in ["base", "bsc", "ethereum", "arbitrum"]:
+        if chain in Config.ENABLED_CHAINS:
+            chain_tokens = fetch_coingecko_chain_tokens(chain, limit=600)
+            add_tokens(chain_tokens)
+
+    # Deduplicate while preserving priority order
+    seen = set()
+    deduped = []
+    for t in ordered_candidates:
+        if t not in seen:
+            seen.add(t)
+            deduped.append(t)
+
+    target_size = Config.TARGET_UNIVERSE_SIZE
+    if len(deduped) > target_size:
+        logger.info(f"Discovered {len(deduped)} tokens. Trimming to target universe size {target_size}.")
+        deduped = deduped[:target_size]
+
+    logger.info(f"Total deduplicated candidate universe ready for scan: {len(deduped)} tokens.")
+    return deduped

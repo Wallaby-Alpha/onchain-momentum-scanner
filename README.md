@@ -17,21 +17,23 @@ Most on-chain bots chase 5-minute microcap launches (<$50k market cap) that rug 
 
 ---
 
-## 🏗 System Architecture
+## 🏗 System Architecture (3,000-Token Scaled Pipeline)
 
 ```
 ┌──────────────────────────────────────────┐
-│  Universe Discovery                      │
-│  - DexScreener Top Boosts & Profiles     │
-│  - DEX seeds: Raydium, Meteora, Aero, etc│
-│  - GeckoTerminal top pools               │
+│  High-Scale Universe Discovery (3,000)   │
+│  - Persistent SQLite Registry (Active)   │
+│  - Solana Labs Verified Token Registry   │
+│  - CoinGecko Base/BSC/ETH/Arbitrum Lists │
+│  - Dynamic DEX & Narrative Sector Seeds  │
 └────────────────────┬─────────────────────┘
-                     │ Token Addresses
+                     │ 3,000 Candidate Tokens
                      ▼
 ┌──────────────────────────────────────────┐
-│  DexScreener Multi-Token Enrichment      │
-│  - Batch requests (30 tokens/call)       │
-│  - Primary pool extraction (deepest liq) │
+│  Async DexScreener Enrichment (aiohttp)  │
+│  - 100 parallel batches (30 tokens/call) │
+│  - Resolves ~1,000 primary pairs in ~5s  │
+│  - Auto-updates local SQLite registry    │
 └────────────────────┬─────────────────────┘
                      │ Full Metrics Payload
                      ▼

@@ -23,6 +23,7 @@ class Config:
     SCAN_INTERVAL_MINUTES = int(os.getenv("SCAN_INTERVAL_MINUTES", "15"))
     TOP_PICKS_PER_SCAN = int(os.getenv("TOP_PICKS_PER_SCAN", "3"))
     ALERT_COOLDOWN_HOURS = float(os.getenv("ALERT_COOLDOWN_HOURS", "12"))
+    TARGET_UNIVERSE_SIZE = int(os.getenv("TARGET_UNIVERSE_SIZE", "3000"))
 
     # Size & Age Criteria (Mid-Cap Leaders, not 1-hour rugs)
     MIN_MCAP_USD = float(os.getenv("MIN_MCAP_USD", "1000000"))         # $1M min
@@ -33,11 +34,11 @@ class Config:
     MAX_FDV_MCAP_RATIO = float(os.getenv("MAX_FDV_MCAP_RATIO", "1.75"))
 
     # Momentum & Orderflow Thresholds
-    MIN_BUYER_RATIO_1H = float(os.getenv("MIN_BUYER_RATIO_1H", "0.48")) # 48%+ buys
-    MIN_PRICE_CHANGE_1H = float(os.getenv("MIN_PRICE_CHANGE_1H", "-3.0")) # Allows small pullback/breather
-    MIN_PRICE_CHANGE_6H = float(os.getenv("MIN_PRICE_CHANGE_6H", "0.0"))
-    MIN_PRICE_CHANGE_24H = float(os.getenv("MIN_PRICE_CHANGE_24H", "5.0"))
-    MIN_MOMENTUM_SCORE = float(os.getenv("MIN_MOMENTUM_SCORE", "45.0"))
+    MIN_BUYER_RATIO_1H = float(os.getenv("MIN_BUYER_RATIO_1H", "0.45")) # 45%+ buys
+    MIN_PRICE_CHANGE_1H = float(os.getenv("MIN_PRICE_CHANGE_1H", "-5.0")) # Normal healthy breather
+    MIN_PRICE_CHANGE_6H = float(os.getenv("MIN_PRICE_CHANGE_6H", "-5.0")) # Healthy consolidation allowed
+    MIN_PRICE_CHANGE_24H = float(os.getenv("MIN_PRICE_CHANGE_24H", "5.0")) # Must be genuinely green on the day
+    MIN_MOMENTUM_SCORE = float(os.getenv("MIN_MOMENTUM_SCORE", "40.0"))
 
     # Chains
     ENABLED_CHAINS = [
