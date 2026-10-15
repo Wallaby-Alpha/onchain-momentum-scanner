@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  scanner:
+    build: .
+    container_name: onchain-momentum-scanner
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
