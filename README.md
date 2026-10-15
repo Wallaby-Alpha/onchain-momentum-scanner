@@ -23,9 +23,9 @@ Most on-chain bots chase 5-minute microcap launches (<$50k market cap) that rug 
 ┌──────────────────────────────────────────┐
 │  High-Scale Universe Discovery (3,000)   │
 │  - Persistent SQLite Registry (Active)   │
-│  - Solana Labs Verified Token Registry   │
+│  - Raydium V3 Top-Volume Pools (Solana)  │
+│  - GeckoTerminal Trending & Top Pools    │
 │  - CoinGecko Base/BSC/ETH/Arbitrum Lists │
-│  - Dynamic DEX & Narrative Sector Seeds  │
 └────────────────────┬─────────────────────┘
                      │ 3,000 Candidate Tokens
                      ▼
