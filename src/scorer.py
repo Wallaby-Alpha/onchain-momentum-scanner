@@ -119,9 +119,10 @@ def evaluate_and_score(pair: Dict[str, Any]) -> Tuple[bool, Optional[Dict[str, A
         accel_score = max(100.0 - (vol_accel - 3.5) * 4.0, 50.0)
 
     # 4. Liquidity Depth & Market Quality (10%)
-    # $100k = 25 pts, $500k = 70 pts, $2M+ = 100 pts
+    # Scaled from $20k to $1M+:
+    # $20k = 15 pts, $100k = 50 pts, $500k = 85 pts, $1M+ = 100 pts
     liq_log = math.log10(max(liq_usd, 1.0))
-    liq_score = min(max((liq_log - 4.8) / 1.5 * 100.0, 0.0), 100.0)
+    liq_score = min(max((liq_log - 4.0) / 2.0 * 100.0, 0.0), 100.0)
 
     composite_score = (
         0.40 * trend_score +

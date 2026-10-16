@@ -25,12 +25,12 @@ class Config:
     ALERT_COOLDOWN_HOURS = float(os.getenv("ALERT_COOLDOWN_HOURS", "12"))
     TARGET_UNIVERSE_SIZE = int(os.getenv("TARGET_UNIVERSE_SIZE", "3000"))
 
-    # Size & Age Criteria (Mid-Cap Leaders, not 1-hour rugs)
-    MIN_MCAP_USD = float(os.getenv("MIN_MCAP_USD", "1000000"))         # $1M min
-    MAX_MCAP_USD = float(os.getenv("MAX_MCAP_USD", "60000000"))        # $60M max
+    # Size & Age Criteria ($200k - $10M sweet spot)
+    MIN_MCAP_USD = float(os.getenv("MIN_MCAP_USD", "200000"))           # $200k min
+    MAX_MCAP_USD = float(os.getenv("MAX_MCAP_USD", "10000000"))         # $10M max
     MIN_AGE_DAYS = float(os.getenv("MIN_AGE_DAYS", "2.5"))              # 2.5 days min
-    MIN_LIQUIDITY_USD = float(os.getenv("MIN_LIQUIDITY_USD", "100000")) # $100k min
-    MIN_VOLUME_24H_USD = float(os.getenv("MIN_VOLUME_24H_USD", "300000")) # $300k min
+    MIN_LIQUIDITY_USD = float(os.getenv("MIN_LIQUIDITY_USD", "20000"))  # $20k min
+    MIN_VOLUME_24H_USD = float(os.getenv("MIN_VOLUME_24H_USD", "50000")) # $50k min
     MAX_FDV_MCAP_RATIO = float(os.getenv("MAX_FDV_MCAP_RATIO", "1.75"))
 
     # Momentum & Orderflow Thresholds

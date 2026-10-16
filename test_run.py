@@ -67,13 +67,15 @@ def run_dry_test():
     rows = []
     for rank, t in enumerate(passed[:10], 1):
         price_str = f"${t['price_usd']:.4f}" if t['price_usd'] >= 0.001 else f"${t['price_usd']:.8f}"
+        mcap_val = t["market_cap"]
+        mcap_str = f"${mcap_val/1e6:.1f}M" if mcap_val >= 1e6 else f"${mcap_val/1e3:.0f}K"
         rows.append([
             rank,
             t["symbol"],
             t["chain_id"],
             f"{t['momentum_score']:.1f}",
             price_str,
-            f"${t['market_cap']/1e6:.1f}M",
+            mcap_str,
             f"${t['liquidity_usd']/1e3:.0f}K",
             f"+{t['price_change_1h']:.1f}%",
             f"+{t['price_change_6h']:.1f}%",

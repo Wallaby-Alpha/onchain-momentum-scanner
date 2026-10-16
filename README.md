@@ -1,6 +1,6 @@
 # On-Chain Momentum Scanner & Performance Tracker
 
-An automated scanner and ranker for finding high-momentum **mid-cap on-chain market leaders** (typically $1M–$60M market cap, >3 days old, deep liquidity) using the DexScreener & GeckoTerminal APIs.
+An automated scanner and ranker for finding high-momentum **on-chain market leaders** (typically $200k–$10M market cap, >2.5 days old, liquid pools) using the DexScreener, Raydium & GeckoTerminal APIs.
 
 The system dispatches formatted Telegram alerts with multi-timeframe order flow metrics, logs alert snapshots into a local SQLite database, and includes a **Forward Performance Evaluator** so you can audit how alerted tokens actually performed over subsequent hours and days.
 
@@ -9,9 +9,9 @@ The system dispatches formatted Telegram alerts with multi-timeframe order flow 
 ## 🎯 Target Universe & Philosophy
 
 Most on-chain bots chase 5-minute microcap launches (<$50k market cap) that rug within 2 hours. This scanner is built specifically for **structural trend leaders**:
-1. **Established Lindy Age**: Default > 2.5–3 days old (filters out 99% of instant rugs and pump.fun snipes).
-2. **Mid-Cap Sweet Spot**: $1M to $60M market cap (sufficient market maturity before major CEX saturation).
-3. **Liquidity Depth**: > $100k - $150k pool reserve to prevent 15% slippage.
+1. **Established Lindy Age**: Default > 2.5 days old (filters out 99% of instant rugs and pump.fun snipes).
+2. **Growth & Mid-Cap Sweet Spot**: $200k to $10M market cap (sufficient market traction before major CEX saturation).
+3. **Liquidity Depth**: > $20k pool reserve to prevent excessive slippage.
 4. **Fractal Trend & Order Flow**: Sustained green alignment across 1h, 6h, and 24h intervals with >50% buyer transaction ratio.
 5. **Anti-Wash Sanity**: Rejects pairs with extreme turnover ratios driven by bot wash loops.
 
