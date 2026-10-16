@@ -19,13 +19,19 @@ class Config:
     TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     ENABLE_TELEGRAM = os.getenv("ENABLE_TELEGRAM", "true").lower() in ("true", "1", "yes")
 
-    # Scanning Schedule
+    # Scanning Schedule & Digest
     SCAN_INTERVAL_MINUTES = int(os.getenv("SCAN_INTERVAL_MINUTES", "15"))
-    TOP_PICKS_PER_SCAN = int(os.getenv("TOP_PICKS_PER_SCAN", "3"))
-    ALERT_COOLDOWN_HOURS = float(os.getenv("ALERT_COOLDOWN_HOURS", "12"))
+    TOP_PICKS_PER_SCAN = int(os.getenv("TOP_PICKS_PER_SCAN", "10"))
+    ALERT_COOLDOWN_HOURS = float(os.getenv("ALERT_COOLDOWN_HOURS", "6"))
     TARGET_UNIVERSE_SIZE = int(os.getenv("TARGET_UNIVERSE_SIZE", "3000"))
+    LEADERBOARD_DIGEST_MODE = os.getenv("LEADERBOARD_DIGEST_MODE", "true").lower() in ("true", "1", "yes")
 
-    # Size & Age Criteria ($200k - $10M sweet spot)
+    # Baseline Safety Floor (Absolute minimums to filter out dead dust/honeypots)
+    BASELINE_MIN_LIQUIDITY_USD = float(os.getenv("BASELINE_MIN_LIQUIDITY_USD", "10000"))
+    BASELINE_MIN_VOLUME_USD = float(os.getenv("BASELINE_MIN_VOLUME_USD", "10000"))
+    BASELINE_MIN_AGE_DAYS = float(os.getenv("BASELINE_MIN_AGE_DAYS", "0.5"))
+
+    # Ideal Target Criteria ($200k - $10M Sweet Spot)
     MIN_MCAP_USD = float(os.getenv("MIN_MCAP_USD", "200000"))           # $200k min
     MAX_MCAP_USD = float(os.getenv("MAX_MCAP_USD", "10000000"))         # $10M max
     MIN_AGE_DAYS = float(os.getenv("MIN_AGE_DAYS", "2.5"))              # 2.5 days min
