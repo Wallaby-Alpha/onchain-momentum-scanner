@@ -3,18 +3,19 @@ import logging
 from typing import Dict, Any, List
 from src.config import Config
 from src.database import get_last_alert, record_alert
-from src.telegram_bot import send_scan_summary
+from src.telegram_bot import send_top10_digest, send_scan_summary
 
 logger = logging.getLogger(__name__)
 
 
 def should_alert_token(token: Dict[str, Any]) -> bool:
     """
-    Determines if a token should be alerted based on recent alert history and cooldowns.
+    Determines if a token should be individually alerted based on recent
+    alert history and cooldowns.
     """
     token_address = token["token_address"]
     last_alert = get_last_alert(token_address)
-    
+
     if not last_alert:
         return True  # Never alerted before
 
@@ -29,7 +30,7 @@ def should_alert_token(token: Dict[str, Any]) -> bool:
         if score_diff >= 15.0:
             logger.info(f"Re-alerting {token['symbol']} due to massive score surge (+{score_diff:.1f} pts).")
             return True
-        logger.info(f"Skipping {token['symbol']} - alerted {hours_elapsed:.1f}h ago (cooldown {Config.ALERT_COOLDOWN_HOURS}h).")
+        logger.info(f"Skipping {token['symbol']} individual alert - alerted {hours_elapsed:.1f}h ago (cooldown {Config.ALERT_COOLDOWN_HOURS}h).")
         return False
 
     return True
@@ -37,26 +38,35 @@ def should_alert_token(token: Dict[str, Any]) -> bool:
 
 def process_top_leaders(ranked_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Filters top tokens through cooldown, records them in the database,
-    and dispatches Telegram alerts.
-    """
-    alertable: List[Dict[str, Any]] = []
+    Always dispatches a Top 10 Leaderboard Digest to Telegram using the
+    highest-scored tokens (regardless of cooldown).
 
+    Additionally, sends individual detailed alerts for tokens that pass the
+    cooldown check and records them to the database.
+    """
+    if not ranked_tokens:
+        logger.info("No ranked tokens to process.")
+        return []
+
+    # --- 1. ALWAYS send the Top-10 digest (best available candidates) ---
+    top10 = ranked_tokens[:10]
+    logger.info(f"Dispatching Top-{len(top10)} leaderboard digest to Telegram...")
+    send_top10_digest(top10)
+
+    # --- 2. Individual detailed alerts (cooldown-gated) ---
+    alertable: List[Dict[str, Any]] = []
     for token in ranked_tokens:
         if should_alert_token(token):
             alertable.append(token)
             if len(alertable) >= Config.TOP_PICKS_PER_SCAN:
                 break
 
-    if not alertable:
-        logger.info("No new tokens passed cooldown for this scan cycle.")
-        return []
+    if alertable:
+        # Record in database for historical performance auditing
+        for token in alertable:
+            alert_id = record_alert(token)
+            logger.info(f"Recorded alert #{alert_id} for {token['symbol']} ({token['token_address']})")
+    else:
+        logger.info("No new tokens passed cooldown for individual alerts this cycle.")
 
-    # Record in database for historical performance auditing
-    for token in alertable:
-        alert_id = record_alert(token)
-        logger.info(f"Recorded alert #{alert_id} for {token['symbol']} ({token['token_address']})")
-
-    # Send alerts via Telegram
-    send_scan_summary(alertable)
-    return alertable
+    return top10
