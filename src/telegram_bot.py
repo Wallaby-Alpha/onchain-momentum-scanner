@@ -119,6 +119,73 @@ def send_telegram_message(html_text: str) -> bool:
         return False
 
 
+def format_top10_digest(leaders: List[Dict[str, Any]]) -> str:
+    """
+    Format the top momentum leaders into a single, clean, consolidated Telegram message.
+    """
+    lines = [
+        "🏆 <b>TOP 10 ON-CHAIN MOMENTUM LEADERBOARD</b>",
+        "⏱ <i>15-Min Market Scan | Solana • Base • Ethereum • BSC</i>",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    ]
+
+    for rank, t in enumerate(leaders[:10], 1):
+        raw_symbol = t.get("symbol", "UNKNOWN")
+        symbol = html.escape(str(raw_symbol))
+
+        chain = t.get("chain_id", "").lower()
+        chain_label = CHAIN_EMOJIS.get(chain, chain.capitalize())
+        
+        score = t.get("momentum_score", 0.0)
+        price = t.get("price_usd", 0.0)
+        mcap = t.get("market_cap", 0.0)
+        liq = t.get("liquidity_usd", 0.0)
+        
+        pc_1h = t.get("price_change_1h", 0.0)
+        pc_6h = t.get("price_change_6h", 0.0)
+        pc_24h = t.get("price_change_24h", 0.0)
+        
+        pc_1h_str = f"+{pc_1h:.1f}%" if pc_1h >= 0 else f"{pc_1h:.1f}%"
+        pc_6h_str = f"+{pc_6h:.1f}%" if pc_6h >= 0 else f"{pc_6h:.1f}%"
+        pc_24h_str = f"+{pc_24h:.1f}%" if pc_24h >= 0 else f"{pc_24h:.1f}%"
+
+        buyer_pct = t.get("buyer_ratio_1h", 0.5) * 100.0
+        target_hit = t.get("target_hit", False)
+        badge = "🎯" if target_hit else "⚡"
+        
+        dex_url = t.get("dex_url", "")
+        
+        if price >= 1.0:
+            price_str = f"${price:,.2f}"
+        elif price >= 0.001:
+            price_str = f"${price:.4f}"
+        else:
+            price_str = f"${price:.8f}"
+
+        mcap_str = f"${mcap/1e6:.1f}M" if mcap >= 1e6 else f"${mcap/1e3:.0f}K"
+        liq_str = f"${liq/1e3:.0f}K"
+
+        item_block = (
+            f"<b>{rank}. {chain_label} | ${symbol}</b> {badge} <code>{score:.1f}/100</code>\n"
+            f"   💰 {price_str} | <b>MCap:</b> {mcap_str} | <b>Liq:</b> {liq_str}\n"
+            f"   📈 1h: {pc_1h_str} • 6h: {pc_6h_str} • 24h: <b>{pc_24h_str}</b> ({buyer_pct:.0f}% Buys)\n"
+            f"   🔗 <a href=\"{dex_url}\">DexScreener</a>"
+        )
+        lines.append(item_block)
+
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("<i>Legend: 🎯 Hits all ideal targets | ⚡ Momentum Watch</i>")
+    return "\n\n".join(lines)
+
+
+def send_top10_digest(leaders: List[Dict[str, Any]]) -> bool:
+    """Dispatches the consolidated Top 10 Leaderboard Digest."""
+    if not leaders:
+        return False
+    digest_msg = format_top10_digest(leaders)
+    return send_telegram_message(digest_msg)
+
+
 def send_scan_summary(leaders: List[Dict[str, Any]]):
     """
     Dispatches alerts for the top momentum leaders.
