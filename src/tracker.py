@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Any, List
 from src.config import Config
 from src.database import get_last_alert, record_alert
-from src.telegram_bot import send_top10_digest, send_scan_summary
+from src.telegram_bot import send_top10_digest
 
 logger = logging.getLogger(__name__)
 
